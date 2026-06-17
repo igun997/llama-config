@@ -1,6 +1,6 @@
 # llama.cpp Qwen Dockerfile for EasyPanel
 
-Single Dockerfile setup for running Qwen with `llama.cpp` server on EasyPanel.
+Single Dockerfile setup for running Qwen GGUF with `llama.cpp` server on EasyPanel.
 
 Base image:
 
@@ -11,14 +11,23 @@ ghcr.io/ggml-org/llama.cpp:server
 Target model:
 
 ```txt
-Qwen3-4B-Instruct-Q4_K_M.gguf
+Qwen3-4B-Instruct-2507-Q4_K_M.gguf
 ```
 
-Runtime model path:
+Container model path built from:
 
 ```txt
-/models/model.gguf
+MODEL_DIR=/models
+MODEL_FILE=Qwen3-4B-Instruct-2507-Q4_K_M.gguf
 ```
+
+So final path is:
+
+```txt
+/models/Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+```
+
+No rename to `model.gguf` needed.
 
 ## EasyPanel settings
 
@@ -46,30 +55,37 @@ RAM target:
 20GB
 ```
 
-Mount/persist model file so container can read:
+Storage mount:
 
 ```txt
-/models/model.gguf
+Container path: /models
 ```
 
-Use filename:
+Put file in mounted storage:
 
 ```txt
-Qwen3-4B-Instruct-Q4_K_M.gguf
+/models/Qwen3-4B-Instruct-2507-Q4_K_M.gguf
 ```
 
-but mount/rename it as:
+On current EasyPanel host, actual bind source is:
 
 ```txt
-model.gguf
+/etc/easypanel/projects/ai/llma-qwen/volumes/models
+```
+
+So host file should be:
+
+```txt
+/etc/easypanel/projects/ai/llma-qwen/volumes/models/Qwen3-4B-Instruct-2507-Q4_K_M.gguf
 ```
 
 ## Environment variables
 
-Set these in EasyPanel environment variables:
+Set these in EasyPanel:
 
 ```txt
-MODEL_PATH=/models/model.gguf
+MODEL_DIR=/models
+MODEL_FILE=Qwen3-4B-Instruct-2507-Q4_K_M.gguf
 HOST=0.0.0.0
 PORT=8080
 THREADS=8
@@ -78,51 +94,44 @@ CTX_SIZE=4096
 BATCH_SIZE=512
 UBATCH_SIZE=256
 PARALLEL=1
+API_KEY=your-secret-key
 ```
 
-Dockerfile intentionally does not set defaults, so EasyPanel env controls runtime.
-
-## Expected speed
-
-Server CPU:
+Optional legacy override:
 
 ```txt
-Intel Xeon Platinum 8167M @ 2.00GHz
-8 vCPU
+MODEL_PATH=/models/Qwen3-4B-Instruct-2507-Q4_K_M.gguf
 ```
 
-Expected output speed for `Qwen3-4B-Instruct-Q4_K_M.gguf`:
+If `MODEL_PATH` is set, it overrides `MODEL_DIR` + `MODEL_FILE`.
+
+## API key
+
+Dockerfile passes EasyPanel `API_KEY` to llama.cpp:
 
 ```txt
-~18-35 tok/s
+--api-key $API_KEY
 ```
 
-Actual `tok/s` depends prompt size, CPU steal, RAM bandwidth, concurrent requests.
-
-## OpenAI-compatible endpoint
-
-Base URL:
+Client must send:
 
 ```txt
-http://YOUR_DOMAIN_OR_IP/v1
+Authorization: Bearer your-secret-key
 ```
 
-Chat endpoint:
+Hermes agent config:
 
 ```txt
-http://YOUR_DOMAIN_OR_IP/v1/chat/completions
+Base URL: http://YOUR_DOMAIN_OR_IP/v1
+API key: your-secret-key
+Model: qwen
 ```
 
-Model name can be any string from client side, for example:
-
-```txt
-qwen
-```
-
-Test:
+Test authorized request:
 
 ```bash
 curl http://YOUR_DOMAIN_OR_IP/v1/chat/completions \
+  -H "Authorization: Bearer your-secret-key" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "qwen",
@@ -133,33 +142,60 @@ curl http://YOUR_DOMAIN_OR_IP/v1/chat/completions \
   }'
 ```
 
-## Hermes agent config
+Test rejected request:
 
-```txt
-Base URL: http://YOUR_DOMAIN_OR_IP/v1
-API key: anything
-Model: qwen
+```bash
+curl -i http://YOUR_DOMAIN_OR_IP/v1/models
 ```
 
-## If EasyPanel shows mlock error
-
-Remove this flag from `Dockerfile`:
+Expected without key:
 
 ```txt
---mlock
+401 Unauthorized
 ```
 
-Then redeploy.
+## Download model on server
 
-## If RAM grows too high
+```bash
+sudo mkdir -p /etc/easypanel/projects/ai/llma-qwen/volumes/models
 
-Set EasyPanel memory limit to 20GB.
+sudo wget -c -O /etc/easypanel/projects/ai/llma-qwen/volumes/models/Qwen3-4B-Instruct-2507-Q4_K_M.gguf \
+  https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+```
 
-If still high, lower context:
+If 401, use mirror:
+
+```bash
+sudo wget -c -O /etc/easypanel/projects/ai/llma-qwen/volumes/models/Qwen3-4B-Instruct-2507-Q4_K_M.gguf \
+  https://huggingface.co/mmnga/Qwen3-4B-Instruct-2507-gguf/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+```
+
+## Expected speed
+
+Server CPU:
 
 ```txt
-CTX_SIZE=2048
+Intel Xeon Platinum 8167M @ 2.00GHz
+8 vCPU
 ```
+
+Expected output speed for `Qwen3-4B-Instruct-2507-Q4_K_M.gguf`:
+
+```txt
+~18-35 tok/s
+```
+
+Actual speed depends prompt size, CPU steal, RAM bandwidth, concurrent requests.
+
+## Notes
+
+`--mlock` removed because EasyPanel/container memlock caused warning:
+
+```txt
+failed to mlock ... Cannot allocate memory
+```
+
+Model still runs normally without `--mlock`.
 
 ## Local build test
 
@@ -172,7 +208,7 @@ Run locally:
 ```bash
 docker run --rm -p 8080:8080 \
   -v "$PWD/models:/models:ro" \
-  --memory=20g \
-  --ulimit memlock=-1:-1 \
+  -e MODEL_FILE=Qwen3-4B-Instruct-2507-Q4_K_M.gguf \
+  -e API_KEY=your-secret-key \
   qwen-llama-cpp
 ```
