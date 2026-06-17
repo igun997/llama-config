@@ -17,18 +17,18 @@ EXPOSE 8080
 # ENV UBATCH_SIZE=256
 # ENV PARALLEL=1
 
-CMD /app/llama-server \
-  -m "$MODEL_PATH" \
-  --host "$HOST" \
-  --port "$PORT" \
-  --threads "$THREADS" \
-  --threads-batch "$THREADS_BATCH" \
-  --ctx-size "$CTX_SIZE" \
-  --batch-size "$BATCH_SIZE" \
-  --ubatch-size "$UBATCH_SIZE" \
-  --parallel "$PARALLEL" \
+CMD ["sh", "-c", "exec /app/llama-server \
+  -m \"$MODEL_PATH\" \
+  --host \"$HOST\" \
+  --port \"$PORT\" \
+  --threads \"$THREADS\" \
+  --threads-batch \"$THREADS_BATCH\" \
+  --ctx-size \"$CTX_SIZE\" \
+  --batch-size \"$BATCH_SIZE\" \
+  --ubatch-size \"$UBATCH_SIZE\" \
+  --parallel \"$PARALLEL\" \
   --cont-batching \
   --cache-type-k q8_0 \
   --cache-type-v q8_0 \
   --mlock \
-  --no-mmap
+  --no-mmap"]

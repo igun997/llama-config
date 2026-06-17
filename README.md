@@ -66,7 +66,7 @@ model.gguf
 
 ## Environment variables
 
-Dockerfile defaults:
+Set these in EasyPanel environment variables:
 
 ```txt
 MODEL_PATH=/models/model.gguf
@@ -80,7 +80,7 @@ UBATCH_SIZE=256
 PARALLEL=1
 ```
 
-Override in EasyPanel only if needed.
+Dockerfile intentionally does not set defaults, so EasyPanel env controls runtime.
 
 ## Expected speed
 
