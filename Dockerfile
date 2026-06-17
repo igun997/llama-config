@@ -17,6 +17,8 @@ EXPOSE 8080
 # ENV UBATCH_SIZE=256
 # ENV PARALLEL=1
 
+ENTRYPOINT []
+
 CMD ["sh", "-c", "exec /app/llama-server \
   -m \"$MODEL_PATH\" \
   --host \"$HOST\" \
