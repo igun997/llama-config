@@ -5,17 +5,17 @@ WORKDIR /app
 EXPOSE 8080
 
 # EasyPanel should mount/persist your GGUF at this path.
-ENV MODEL_PATH=/models/model.gguf
-ENV HOST=0.0.0.0
-ENV PORT=8080
+# ENV MODEL_PATH=/models/model.gguf
+# ENV HOST=0.0.0.0
+# ENV PORT=8080
 
-# Tuned for Intel Xeon Platinum 8167M, 8 vCPU, 20GB RAM target.
-ENV THREADS=8
-ENV THREADS_BATCH=8
-ENV CTX_SIZE=4096
-ENV BATCH_SIZE=512
-ENV UBATCH_SIZE=256
-ENV PARALLEL=1
+# # Tuned for Intel Xeon Platinum 8167M, 8 vCPU, 20GB RAM target.
+# ENV THREADS=8
+# ENV THREADS_BATCH=8
+# ENV CTX_SIZE=4096
+# ENV BATCH_SIZE=512
+# ENV UBATCH_SIZE=256
+# ENV PARALLEL=1
 
 CMD /app/llama-server \
   -m "$MODEL_PATH" \
